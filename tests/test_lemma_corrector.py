@@ -7,8 +7,8 @@ class TestLemmaCorrector:
     """Tests for the LemmaCorrector class, specifically the get_corrections method.
 
     This test suite verifies the behavior of the correction algorithm under
-    various conditions, including empty inputs, single-item inputs, and
-    standard multi-word corpora with spelling errors.
+    various conditions, including empty inputs, single-item inputs,
+    standard multi-word corpora with spelling errors, and vocabulary constraints.
     """
 
     def test_get_corrections_empty(self) -> None:
@@ -61,6 +61,14 @@ class TestLemmaCorrector:
         }
 
     def test_get_corrections_vocabulary(self) -> None:
+        """Tests that providing a complete vocabulary prevents any corrections.
+
+        Verifies that when all lemmas in the corpus are present in the known
+        vocabulary, the algorithm correctly identifies them as valid words and
+        yields an empty corrections dictionary, ensuring no known words are
+        incorrectly overwritten.
+        """
+
         texts = [
             "foo foo foo",
             "bar bar",
