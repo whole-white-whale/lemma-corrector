@@ -8,9 +8,11 @@ from rapidfuzz.distance import DamerauLevenshtein
 
 class LemmaCorrector:
     bag_of_lemmata: Counter[str]
+    epsilon: float
 
-    def __init__(self, bag_of_lemmata: Counter[str]) -> None:
+    def __init__(self, bag_of_lemmata: Counter[str], epsilon: float = 1.0e-6) -> None:
         self.bag_of_lemmata = bag_of_lemmata
+        self.epsilon = epsilon
 
     def get_graph(self) -> nx.Graph:
         graph = nx.Graph()
@@ -23,3 +25,6 @@ class LemmaCorrector:
                 graph.add_edge(node_1, node_2)
 
         return graph
+
+    def get_communities(self, graph: nx.Graph) -> list[set[str]]:
+        return nx.community.louvain_communities(graph, threshold=self.epsilon)
