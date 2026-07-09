@@ -9,11 +9,12 @@ from rapidfuzz.distance import DamerauLevenshtein
 class LemmaCorrector:
     """Corrects misspelled lemmas in a text corpus using graph-based community detection.
 
-    This class treats lemmas as nodes in a graph, connecting them if their
-    Damerau-Levenshtein distance is 1. It then uses the Louvain algorithm to
-    cluster similar lemmas into communities. The correct spelling (the "leader")
-    of each community is determined by finding consensus between the lemma with
-    the highest normalized frequency and the lemma with the highest PageRank.
+    This class treats lemmas as nodes in a graph, connecting them with
+    weighted edges if their Damerau-Levenshtein distance is 1. It then uses
+    the Louvain algorithm to cluster similar lemmas into communities. The
+    correct spelling (the "leader") of each community is determined by finding
+    consensus between the lemma with the highest normalized frequency and the
+    lemma with the highest PageRank.
 
     Attributes:
         bag_of_lemmata: A counter mapping each lemma to its frequency in the corpus.
@@ -73,9 +74,11 @@ class LemmaCorrector:
         """Constructs a NetworkX graph of lemmas based on edit distance and frequency.
 
         Nodes represent unique lemmas, weighted by their normalized frequency
-        (frequency divided by the maximum frequency in the corpus). Edges are
-        added between any two lemmas that have a Damerau-Levenshtein distance
-        of exactly 1.
+        (frequency divided by the maximum frequency in the corpus). Weighted
+        edges are added between any two lemmas that have a Damerau-Levenshtein
+        distance of exactly 1. The edge weight is proportional to the length of
+        the longer lemma, reflecting that a single edit is a smaller relative
+        change in longer strings.
 
         Returns:
             An undirected NetworkX graph where nodes are lemmas and edges
@@ -104,6 +107,24 @@ class LemmaCorrector:
         return graph
 
     def get_edge_weight(self, node_1: str, node_2: str) -> float:
+        """Calculates the edge weight between two lemmas based on edit distance and length.
+
+        Returns 0.0 if the Damerau-Levenshtein distance between the two lemmas
+        is not exactly 1. Otherwise, computes a weight as
+        ``1.0 - 1.0 / max(len(node_1), len(node_2))``. This means that a single
+        edit between longer strings produces a higher weight (closer to 1.0),
+        reflecting greater overall similarity.
+
+        Args:
+            node_1: The lemma string #1.
+            node_2: The lemma string #2.
+
+        Returns:
+            A float representing the edge weight. Returns 0.0 if the lemmas
+            are not within a single edit distance, otherwise a value in the
+            open interval (0.0, 1.0).
+        """
+
         if DamerauLevenshtein.distance(node_1, node_2) != 1:
             return 0.0
 
