@@ -96,10 +96,18 @@ class LemmaCorrector:
             )
 
         for node_1, node_2 in combinations(graph.nodes, 2):
-            if DamerauLevenshtein.distance(node_1, node_2) == 1:
-                graph.add_edge(node_1, node_2)
+            edge_weight = self.get_edge_weight(node_1, node_2)
+
+            if edge_weight > 0.0:
+                graph.add_edge(node_1, node_2, weight=edge_weight)
 
         return graph
+
+    def get_edge_weight(self, node_1: str, node_2: str) -> float:
+        if DamerauLevenshtein.distance(node_1, node_2) != 1:
+            return 0.0
+
+        return 1.0 - 1.0 / max(len(node_1), len(node_2))
 
     def get_communities(self, graph: nx.Graph) -> list[set[str]]:
         """Detects communities of similar lemmas using the Louvain algorithm.
