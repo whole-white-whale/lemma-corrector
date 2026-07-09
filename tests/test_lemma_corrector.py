@@ -60,6 +60,24 @@ class TestLemmaCorrector:
             "baz": "bar",
         }
 
+    def test_get_corrections_vocabulary(self) -> None:
+        texts = [
+            "foo foo foo",
+            "bar bar",
+            "baz",
+        ]
+
+        vocabulary = {
+            "foo",
+            "bar",
+            "baz",
+        }
+
+        bag_of_lemmata = get_bag_of_lemmata(texts)
+        corrector = LemmaCorrector(bag_of_lemmata, vocabulary)
+
+        assert corrector.get_corrections() == {}
+
 
 def get_bag_of_lemmata(texts: list[str]) -> Counter[str]:
     """Extracts and counts lowercased words from a list of texts.
