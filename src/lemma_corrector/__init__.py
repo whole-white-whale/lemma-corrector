@@ -14,6 +14,26 @@ class LemmaCorrector:
         self.bag_of_lemmata = bag_of_lemmata
         self.epsilon = epsilon
 
+    def get_corrections(self) -> dict[str, str]:
+        corrections: dict[str, str] = {}
+
+        graph = self.get_graph()
+
+        for community in self.get_communities(graph):
+            if len(community) == 1:
+                continue
+
+            leader = self.get_leader(graph, community)
+
+            if leader is None:
+                continue
+
+            for node in community:
+                if node != leader:
+                    corrections[node] = leader
+
+        return corrections
+
     def get_graph(self) -> nx.Graph:
         graph = nx.Graph()
 
