@@ -1,6 +1,6 @@
 [project]
 name = "lemma-corrector"
-version = "0.1.0"
+version = "1.0.0"
 description = "Correcting post-lemmatization spelling errors"
 readme = "README.md"
 authors = [
