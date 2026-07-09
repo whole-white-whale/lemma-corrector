@@ -23,9 +23,15 @@ class LemmaCorrector:
     """
 
     bag_of_lemmata: Counter[str]
+    vocabulary: set[str]
     epsilon: float
 
-    def __init__(self, bag_of_lemmata: Counter[str], epsilon: float = 1.0e-6) -> None:
+    def __init__(
+        self,
+        bag_of_lemmata: Counter[str],
+        vocabulary: set[str] | None = None,
+        epsilon: float = 1.0e-6,
+    ) -> None:
         """Initializes the LemmaCorrector with corpus data and tolerance settings.
 
         Args:
@@ -36,6 +42,13 @@ class LemmaCorrector:
         """
 
         self.bag_of_lemmata = bag_of_lemmata
+
+        if vocabulary is None:
+            self.vocabulary = set()
+
+        else:
+            self.vocabulary = vocabulary
+
         self.epsilon = epsilon
 
     def get_corrections(self) -> dict[str, str]:
@@ -125,6 +138,9 @@ class LemmaCorrector:
             open interval (0.0, 1.0).
         """
 
+        if node_1 in self.vocabulary and node_2 in self.vocabulary:
+            return 0.0
+
         if DamerauLevenshtein.distance(node_1, node_2) != 1:
             return 0.0
 
@@ -164,6 +180,11 @@ class LemmaCorrector:
         leader_by_rank = self.get_leader_by_rank(graph, community)
 
         if leader_by_node_weight != leader_by_rank:
+            return None
+
+        if leader_by_rank not in self.vocabulary and any(
+            node in self.vocabulary for node in community
+        ):
             return None
 
         return leader_by_rank
