@@ -18,6 +18,8 @@ class LemmaCorrector:
 
     Attributes:
         bag_of_lemmata: A counter mapping each lemma to its frequency in the corpus.
+        vocabulary: A set of known correct lemmas. Used to prevent creating edges
+            between two known words and to validate community leaders.
         epsilon: The tolerance threshold used for community detection and PageRank
             calculations.
     """
@@ -37,6 +39,9 @@ class LemmaCorrector:
         Args:
             bag_of_lemmata: A Counter object containing the lemmas and their
                 respective frequencies from the text corpus.
+            vocabulary: An optional set of known correct lemmas. If provided,
+                it guides the correction process by preventing edges between
+                known words and validating community leaders. Defaults to None.
             epsilon: The tolerance threshold for the Louvain community detection
                 and PageRank algorithms. Defaults to 1.0e-6.
         """
@@ -89,9 +94,9 @@ class LemmaCorrector:
         Nodes represent unique lemmas, weighted by their normalized frequency
         (frequency divided by the maximum frequency in the corpus). Weighted
         edges are added between any two lemmas that have a Damerau-Levenshtein
-        distance of exactly 1. The edge weight is proportional to the length of
-        the longer lemma, reflecting that a single edit is a smaller relative
-        change in longer strings.
+        distance of exactly 1, provided they are not both in the known vocabulary.
+        The edge weight is proportional to the length of the longer lemma,
+        reflecting that a single edit is a smaller relative change in longer strings.
 
         Returns:
             An undirected NetworkX graph where nodes are lemmas and edges
@@ -122,20 +127,21 @@ class LemmaCorrector:
     def get_edge_weight(self, node_1: str, node_2: str) -> float:
         """Calculates the edge weight between two lemmas based on edit distance and length.
 
-        Returns 0.0 if the Damerau-Levenshtein distance between the two lemmas
-        is not exactly 1. Otherwise, computes a weight as
-        ``1.0 - 1.0 / max(len(node_1), len(node_2))``. This means that a single
-        edit between longer strings produces a higher weight (closer to 1.0),
-        reflecting greater overall similarity.
+        Returns 0.0 if both lemmas are in the known vocabulary, preventing
+        edges between two known correct words. Also returns 0.0 if the
+        Damerau-Levenshtein distance between the two lemmas is not exactly 1.
+        Otherwise, computes a weight as ``1.0 - 1.0 / max(len(node_1), len(node_2))``.
+        This means that a single edit between longer strings produces a higher
+        weight (closer to 1.0), reflecting greater overall similarity.
 
         Args:
             node_1: The lemma string #1.
             node_2: The lemma string #2.
 
         Returns:
-            A float representing the edge weight. Returns 0.0 if the lemmas
-            are not within a single edit distance, otherwise a value in the
-            open interval (0.0, 1.0).
+            A float representing the edge weight. Returns 0.0 if both lemmas
+            are in the vocabulary, or if they are not within a single edit
+            distance. Otherwise, returns a value in the open interval (0.0, 1.0).
         """
 
         if node_1 in self.vocabulary and node_2 in self.vocabulary:
@@ -165,7 +171,10 @@ class LemmaCorrector:
         A valid leader must be both the most frequent lemma (by node weight)
         and the most central lemma (by PageRank) within the community. If the
         most frequent and most central lemmas are not the same, the community
-        is considered ambiguous and no leader is returned.
+        is considered ambiguous and no leader is returned. Additionally, if the
+        chosen leader is not in the known vocabulary, but at least one other
+        node in the community is, the leader is rejected to prevent overwriting
+        a known correct word with an unknown one.
 
         Args:
             graph: The full NetworkX graph of lemmas.
@@ -173,7 +182,8 @@ class LemmaCorrector:
 
         Returns:
             The string of the correct lemma if there is consensus between
-            frequency and PageRank, otherwise None.
+            frequency and PageRank, and it passes the vocabulary checks,
+            otherwise None.
         """
 
         leader_by_node_weight = self.get_leader_by_node_weight(graph, community)
